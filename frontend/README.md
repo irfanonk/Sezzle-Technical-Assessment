@@ -71,10 +71,16 @@ The frontend uses:
 - `GET /api/operations` to load operation metadata
 - `POST /api/calculate` to submit calculations
 
-## Test, type check, and build
+## Test 
 
 ```sh
 pnpm test
+pnpm run test:coverage  
+```
+
+## Type check, and build
+
+```sh
 pnpm typecheck
 pnpm build
 ```
