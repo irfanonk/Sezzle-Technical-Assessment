@@ -27,6 +27,28 @@ gracefully on `SIGINT` or `SIGTERM`.
 go test ./...
 ```
 
+## Docker
+
+Build and run the production image:
+
+```sh
+docker build -t go-calculator-backend .
+docker run --rm -p 8080:8080 go-calculator-backend
+```
+
+Stop and remove it:
+
+```sh
+docker stop calculator-backend
+docker rm calculator-backend
+```
+
+Check the running container:
+
+```sh
+curl http://localhost:8080/health
+```
+
 ## API response format
 
 Every endpoint returns JSON using the same envelope. A response contains either

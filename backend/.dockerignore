@@ -1,0 +1,15 @@
+.git
+.gitignore
+.DS_Store
+.env
+.env.*
+.idea
+.vscode
+
+README.md
+**/*_test.go
+bin
+coverage
+coverage.*
+*.out
+*.test

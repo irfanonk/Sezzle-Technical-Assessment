@@ -25,6 +25,8 @@ func NewHandler() http.Handler {
 
 func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	switch request.URL.Path {
+	case "/health":
+		handler.health(writer, request)
 	case "/api/operations":
 		handler.operations(writer, request)
 	case "/api/calculate":
@@ -32,6 +34,20 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	default:
 		writeError(writer, http.StatusNotFound, "not_found", "endpoint not found")
 	}
+}
+
+type healthData struct {
+	Status string `json:"status"`
+}
+
+func (handler *Handler) health(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		writer.Header().Set("Allow", http.MethodGet)
+		writeError(writer, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed")
+		return
+	}
+
+	writeSuccess(writer, http.StatusOK, healthData{Status: "ok"})
 }
 
 type operationsData struct {

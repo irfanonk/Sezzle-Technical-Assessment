@@ -348,6 +348,24 @@ func TestCalculateEndpointFailures(t *testing.T) {
 	}
 }
 
+func TestHealthEndpoint(t *testing.T) {
+	t.Parallel()
+
+	response := performRequest(t, http.MethodGet, "/health", "", "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+
+	envelope := decodeEnvelope(t, response)
+	var data healthData
+	if err := json.Unmarshal(envelope.Data, &data); err != nil {
+		t.Fatalf("decode health data: %v", err)
+	}
+	if data.Status != "ok" {
+		t.Errorf("health status = %q, want %q", data.Status, "ok")
+	}
+}
+
 func TestOperationsEndpoint(t *testing.T) {
 	t.Parallel()
 
