@@ -42,7 +42,9 @@ describe('operations loading', () => {
 
     renderWithClient(<Calculator />);
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading operations');
+    expect(screen.getByRole('status', { name: 'Operations status' })).toHaveTextContent(
+      'Loading operations',
+    );
   });
 
   it('renders the operations returned by the backend', async () => {
@@ -56,6 +58,15 @@ describe('operations loading', () => {
       'Division (÷)',
       'Square Root (√)',
     ]);
+  });
+
+  it('shows an empty state when the backend returns no operations', async () => {
+    stubFetch(async () => jsonResponse({ data: { operations: [] }, error: null }));
+
+    renderWithClient(<Calculator />);
+
+    expect(await screen.findByText('No operations are available right now.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Operation')).not.toBeInTheDocument();
   });
 
   it('generates one operand input per arity of the selected operation', async () => {
@@ -92,7 +103,7 @@ describe('operations loading', () => {
 });
 
 describe('calculation', () => {
-  it('blocks the request when operands are missing or not numbers', async () => {
+  it('blocks the request when operands are missing', async () => {
     const user = userEvent.setup();
     const fetchMock = stubBackend(async () => jsonResponse({ data: { result: 0 }, error: null }));
 
@@ -102,6 +113,14 @@ describe('calculation', () => {
     await user.click(screen.getByRole('button', { name: 'Calculate' }));
     expect(screen.getAllByText('Enter a value.')).toHaveLength(2);
     expect(calculateCalls(fetchMock)).toHaveLength(0);
+  });
+
+  it('blocks the request when an operand is not a valid number', async () => {
+    const user = userEvent.setup();
+    const fetchMock = stubBackend(async () => jsonResponse({ data: { result: 0 }, error: null }));
+
+    renderWithClient(<Calculator />);
+    await screen.findByLabelText('Operation');
 
     await fillOperands(user, ['abc', '2']);
     await user.click(screen.getByRole('button', { name: 'Calculate' }));
@@ -121,7 +140,9 @@ describe('calculation', () => {
     await fillOperands(user, ['2', '3']);
     await user.click(screen.getByRole('button', { name: 'Calculate' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Calculating result');
+    expect(
+      await screen.findByRole('status', { name: 'Calculation status' }),
+    ).toHaveTextContent('Calculating result');
     expect(screen.getByRole('button', { name: 'Calculating…' })).toBeDisabled();
 
     pending.resolve(jsonResponse({ data: { result: 5 }, error: null }));
@@ -163,6 +184,28 @@ describe('calculation', () => {
     await user.click(screen.getByRole('button', { name: 'Calculate' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('cannot divide by zero');
+  });
+
+  it('clears a stale calculation error when an input changes', async () => {
+    const user = userEvent.setup();
+    stubBackend(async () =>
+      jsonResponse(
+        { data: null, error: { code: 'division_by_zero', message: 'cannot divide by zero' } },
+        400,
+      ),
+    );
+
+    renderWithClient(<Calculator />);
+    await screen.findByLabelText('Operation');
+
+    await user.selectOptions(screen.getByLabelText('Operation'), 'divide');
+    await fillOperands(user, ['1', '0']);
+    await user.click(screen.getByRole('button', { name: 'Calculate' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('cannot divide by zero');
+
+    await user.type(screen.getAllByRole('textbox')[0]!, '2');
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('prevents duplicate submissions while a calculation is pending', async () => {

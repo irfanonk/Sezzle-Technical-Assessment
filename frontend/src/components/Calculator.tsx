@@ -65,7 +65,7 @@ export function Calculator() {
 
   if (operationsQuery.isPending) {
     return (
-      <p role="status" className="text-sm text-slate-600">
+      <p role="status" aria-label="Operations status" className="text-sm text-slate-600">
         Loading operations…
       </p>
     );
@@ -100,7 +100,7 @@ export function Calculator() {
       </form>
 
       {calculation.isPending && (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" aria-label="Calculation status" className="text-sm text-slate-600">
           Calculating result…
         </p>
       )}
