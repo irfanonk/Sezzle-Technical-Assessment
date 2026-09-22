@@ -123,6 +123,17 @@ On Linux, reaching a backend running directly on the host may also require:
 --add-host=host.docker.internal:host-gateway
 ```
 
+### Run the full stack with Docker Compose
+
+From the repository root:
+
+```sh
+docker compose up --build
+```
+
+Open `http://localhost:3000`. The backend is also available directly at
+`http://localhost:8080`.
+
 ## Structure
 
 - `src/api/` — `fetch` wrapper, response envelope unwrapping, and error
