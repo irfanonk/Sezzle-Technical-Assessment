@@ -20,17 +20,19 @@ func TestCalculateEndpointSuccess(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		body       string
-		wantResult float64
+		name        string
+		body        string
+		contentType string
+		wantResult  float64
 	}{
-		{name: "addition", body: `{"operation":"add","operands":[2,3]}`, wantResult: 5},
-		{name: "subtraction", body: `{"operation":"subtract","operands":[7,2.5]}`, wantResult: 4.5},
-		{name: "multiplication", body: `{"operation":"multiply","operands":[-4,2]}`, wantResult: -8},
-		{name: "division", body: `{"operation":"divide","operands":[7,2]}`, wantResult: 3.5},
-		{name: "exponentiation", body: `{"operation":"exponentiate","operands":[2,8]}`, wantResult: 256},
-		{name: "square root", body: `{"operation":"square_root","operands":[9]}`, wantResult: 3},
-		{name: "percentage", body: `{"operation":"percentage","operands":[25]}`, wantResult: 0.25},
+		{name: "addition", body: `{"operation":"add","operands":[2,3]}`, contentType: "application/json", wantResult: 5},
+		{name: "subtraction", body: `{"operation":"subtract","operands":[7,2.5]}`, contentType: "application/json", wantResult: 4.5},
+		{name: "multiplication", body: `{"operation":"multiply","operands":[-4,2]}`, contentType: "application/json", wantResult: -8},
+		{name: "division", body: `{"operation":"divide","operands":[7,2]}`, contentType: "application/json", wantResult: 3.5},
+		{name: "exponentiation", body: `{"operation":"exponentiate","operands":[2,8]}`, contentType: "application/json", wantResult: 256},
+		{name: "square root", body: `{"operation":"square_root","operands":[9]}`, contentType: "application/json", wantResult: 3},
+		{name: "percentage", body: `{"operation":"percentage","operands":[25]}`, contentType: "application/json", wantResult: 0.25},
+		{name: "json content type with charset", body: `{"operation":"add","operands":[2,3]}`, contentType: "application/json; charset=utf-8", wantResult: 5},
 	}
 
 	for _, test := range tests {
@@ -42,7 +44,7 @@ func TestCalculateEndpointSuccess(t *testing.T) {
 				t,
 				http.MethodPost,
 				"/api/calculate",
-				"application/json",
+				test.contentType,
 				test.body,
 			)
 			if response.Code != http.StatusOK {
