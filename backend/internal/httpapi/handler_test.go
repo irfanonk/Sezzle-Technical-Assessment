@@ -28,6 +28,9 @@ func TestCalculateEndpointSuccess(t *testing.T) {
 		{name: "subtraction", body: `{"operation":"subtract","operands":[7,2.5]}`, wantResult: 4.5},
 		{name: "multiplication", body: `{"operation":"multiply","operands":[-4,2]}`, wantResult: -8},
 		{name: "division", body: `{"operation":"divide","operands":[7,2]}`, wantResult: 3.5},
+		{name: "exponentiation", body: `{"operation":"exponentiate","operands":[2,8]}`, wantResult: 256},
+		{name: "square root", body: `{"operation":"square_root","operands":[9]}`, wantResult: 3},
+		{name: "percentage", body: `{"operation":"percentage","operands":[25]}`, wantResult: 0.25},
 	}
 
 	for _, test := range tests {
@@ -219,6 +222,15 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			wantCode:    "invalid_operand_count",
 		},
 		{
+			name:        "invalid unary operand count",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"square_root","operands":[9,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_operand_count",
+		},
+		{
 			name:        "division by zero",
 			method:      http.MethodPost,
 			path:        "/api/calculate",
@@ -233,6 +245,24 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			path:        "/api/calculate",
 			contentType: "application/json",
 			body:        `{"operation":"multiply","operands":[1.7976931348623157e308,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "non_finite_value",
+		},
+		{
+			name:        "negative square root",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"square_root","operands":[-1]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "non_finite_value",
+		},
+		{
+			name:        "exponentiation overflow",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"exponentiate","operands":[1.7976931348623157e308,2]}`,
 			wantStatus:  http.StatusBadRequest,
 			wantCode:    "non_finite_value",
 		},
@@ -329,8 +359,17 @@ func TestOperationsEndpoint(t *testing.T) {
 	if err := json.Unmarshal(envelope.Data, &data); err != nil {
 		t.Fatalf("decode operations data: %v", err)
 	}
-	if len(data.Operations) != 4 {
-		t.Fatalf("operation count = %d, want 4", len(data.Operations))
+	expectedArities := map[calculator.Operation]int{
+		calculator.OperationAdd:      2,
+		calculator.OperationSubtract: 2,
+		calculator.OperationMultiply: 2,
+		calculator.OperationDivide:   2,
+		calculator.OperationExponent: 2,
+		calculator.OperationSqrt:     1,
+		calculator.OperationPercent:  1,
+	}
+	if len(data.Operations) != len(expectedArities) {
+		t.Fatalf("operation count = %d, want %d", len(data.Operations), len(expectedArities))
 	}
 
 	seen := make(map[calculator.Operation]bool, len(data.Operations))
@@ -339,13 +378,22 @@ func TestOperationsEndpoint(t *testing.T) {
 			t.Fatalf("operation %q was advertised more than once", operation.Name)
 		}
 		seen[operation.Name] = true
-		if operation.Arity != 2 {
-			t.Errorf("operation %q arity = %d, want 2", operation.Name, operation.Arity)
+		expectedArity, ok := expectedArities[operation.Name]
+		if !ok {
+			t.Fatalf("unexpected advertised operation %q", operation.Name)
+		}
+		if operation.Arity != expectedArity {
+			t.Errorf("operation %q arity = %d, want %d", operation.Name, operation.Arity, expectedArity)
+		}
+
+		operands := make([]float64, operation.Arity)
+		for index := range operands {
+			operands[index] = 1
 		}
 
 		payload, err := json.Marshal(map[string]any{
 			"operation": operation.Name,
-			"operands":  []float64{1, 1},
+			"operands":  operands,
 		})
 		if err != nil {
 			t.Fatalf("encode calculation for %q: %v", operation.Name, err)

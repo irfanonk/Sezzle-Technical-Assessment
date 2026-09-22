@@ -36,6 +36,21 @@ func TestCalculate(t *testing.T) {
 			want:        3.5,
 		},
 		{
+			name:        "exponentiation",
+			calculation: Calculation{Operation: OperationExponent, Operands: []float64{2, 8}},
+			want:        256,
+		},
+		{
+			name:        "square root",
+			calculation: Calculation{Operation: OperationSqrt, Operands: []float64{9}},
+			want:        3,
+		},
+		{
+			name:        "percentage",
+			calculation: Calculation{Operation: OperationPercent, Operands: []float64{25}},
+			want:        0.25,
+		},
+		{
 			name:        "unsupported operation",
 			calculation: Calculation{Operation: "modulo", Operands: []float64{7, 2}},
 			wantErr:     ErrUnsupportedOperation,
@@ -48,6 +63,11 @@ func TestCalculate(t *testing.T) {
 		{
 			name:        "too many operands",
 			calculation: Calculation{Operation: OperationAdd, Operands: []float64{2, 3, 4}},
+			wantErr:     ErrInvalidOperandCount,
+		},
+		{
+			name:        "too many operands for unary operation",
+			calculation: Calculation{Operation: OperationSqrt, Operands: []float64{9, 2}},
 			wantErr:     ErrInvalidOperandCount,
 		},
 		{
@@ -76,6 +96,16 @@ func TestCalculate(t *testing.T) {
 		{
 			name:        "infinite result",
 			calculation: Calculation{Operation: OperationMultiply, Operands: []float64{math.MaxFloat64, 2}},
+			wantErr:     ErrNonFiniteValue,
+		},
+		{
+			name:        "negative square root",
+			calculation: Calculation{Operation: OperationSqrt, Operands: []float64{-1}},
+			wantErr:     ErrNonFiniteValue,
+		},
+		{
+			name:        "exponentiation overflow",
+			calculation: Calculation{Operation: OperationExponent, Operands: []float64{math.MaxFloat64, 2}},
 			wantErr:     ErrNonFiniteValue,
 		},
 	}

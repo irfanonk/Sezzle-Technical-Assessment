@@ -10,6 +10,9 @@ const (
 	OperationSubtract Operation = "subtract"
 	OperationMultiply Operation = "multiply"
 	OperationDivide   Operation = "divide"
+	OperationExponent Operation = "exponentiate"
+	OperationSqrt     Operation = "square_root"
+	OperationPercent  Operation = "percentage"
 )
 
 // OperationInfo describes an operation exposed to API clients.
@@ -73,6 +76,39 @@ var operationRegistry = []operationDefinition{
 				return 0, ErrDivisionByZero
 			}
 			return operands[0] / operands[1], nil
+		},
+	},
+	{
+		info: OperationInfo{
+			Name:   OperationExponent,
+			Label:  "Exponentiation",
+			Symbol: "^",
+			Arity:  2,
+		},
+		calculate: func(operands []float64) (float64, error) {
+			return math.Pow(operands[0], operands[1]), nil
+		},
+	},
+	{
+		info: OperationInfo{
+			Name:   OperationSqrt,
+			Label:  "Square Root",
+			Symbol: "√",
+			Arity:  1,
+		},
+		calculate: func(operands []float64) (float64, error) {
+			return math.Sqrt(operands[0]), nil
+		},
+	},
+	{
+		info: OperationInfo{
+			Name:   OperationPercent,
+			Label:  "Percentage",
+			Symbol: "%",
+			Arity:  1,
+		},
+		calculate: func(operands []float64) (float64, error) {
+			return operands[0] / 100, nil
 		},
 	},
 }

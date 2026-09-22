@@ -117,8 +117,12 @@ curl \
   http://localhost:8080/api/calculate
 ```
 
-Supported operation names are `add`, `subtract`, `multiply`, and `divide`.
-Each currently requires exactly two operands.
+Supported operation names:
+
+- `add`, `subtract`, `multiply`, and `divide` require two operands
+- `exponentiate` requires a base and exponent
+- `square_root` requires one operand
+- `percentage` requires one operand and returns that value divided by 100
 
 ## Error codes
 
