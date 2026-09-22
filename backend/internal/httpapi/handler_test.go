@@ -70,8 +70,17 @@ func TestCalculateEndpointFailures(t *testing.T) {
 		body        string
 		wantStatus  int
 		wantCode    string
+		wantMessage string
 		wantAllow   string
 	}{
+		{
+			name:        "empty body",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "empty_body",
+		},
 		{
 			name:        "malformed JSON",
 			method:      http.MethodPost,
@@ -88,7 +97,7 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			contentType: "application/json",
 			body:        `{"operation":"add","operands":[1,2],"extra":true}`,
 			wantStatus:  http.StatusBadRequest,
-			wantCode:    "malformed_json",
+			wantCode:    "unknown_field",
 		},
 		{
 			name:        "multiple JSON values",
@@ -98,6 +107,89 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			body:        `{"operation":"add","operands":[1,2]} {}`,
 			wantStatus:  http.StatusBadRequest,
 			wantCode:    "malformed_json",
+		},
+		{
+			name:        "missing operation",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operands":[1,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "missing_operation",
+		},
+		{
+			name:        "null operation",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":null,"operands":[1,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "missing_operation",
+		},
+		{
+			name:        "empty operation",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":" ","operands":[1,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "missing_operation",
+		},
+		{
+			name:        "operation has wrong type",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":42,"operands":[1,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_field_type",
+		},
+		{
+			name:        "missing operands",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add"}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "missing_operands",
+		},
+		{
+			name:        "null operands",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add","operands":null}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "missing_operands",
+		},
+		{
+			name:        "operands has wrong type",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add","operands":"1,2"}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_field_type",
+		},
+		{
+			name:        "operand has wrong type",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add","operands":[1,"two"]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_operand_type",
+			wantMessage: "operand at index 1 must be a number",
+		},
+		{
+			name:        "operand is null",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add","operands":[null,2]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_operand_type",
+			wantMessage: "operand at index 0 must be a number",
 		},
 		{
 			name:        "unsupported operation",
@@ -114,6 +206,15 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			path:        "/api/calculate",
 			contentType: "application/json",
 			body:        `{"operation":"add","operands":[1]}`,
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    "invalid_operand_count",
+		},
+		{
+			name:        "empty operands",
+			method:      http.MethodPost,
+			path:        "/api/calculate",
+			contentType: "application/json",
+			body:        `{"operation":"add","operands":[]}`,
 			wantStatus:  http.StatusBadRequest,
 			wantCode:    "invalid_operand_count",
 		},
@@ -142,7 +243,8 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			contentType: "application/json",
 			body:        `{"operation":"add","operands":[1e999,2]}`,
 			wantStatus:  http.StatusBadRequest,
-			wantCode:    "malformed_json",
+			wantCode:    "invalid_operand_type",
+			wantMessage: "operand at index 0 must be a number",
 		},
 		{
 			name:        "unsupported media type",
@@ -207,6 +309,9 @@ func TestCalculateEndpointFailures(t *testing.T) {
 			if envelope.Error.Code != test.wantCode {
 				t.Errorf("error code = %q, want %q", envelope.Error.Code, test.wantCode)
 			}
+			if test.wantMessage != "" && envelope.Error.Message != test.wantMessage {
+				t.Errorf("error message = %q, want %q", envelope.Error.Message, test.wantMessage)
+			}
 		})
 	}
 }
@@ -238,9 +343,9 @@ func TestOperationsEndpoint(t *testing.T) {
 			t.Errorf("operation %q arity = %d, want 2", operation.Name, operation.Arity)
 		}
 
-		payload, err := json.Marshal(calculateRequest{
-			Operation: operation.Name,
-			Operands:  []float64{1, 1},
+		payload, err := json.Marshal(map[string]any{
+			"operation": operation.Name,
+			"operands":  []float64{1, 1},
 		})
 		if err != nil {
 			t.Fatalf("encode calculation for %q: %v", operation.Name, err)

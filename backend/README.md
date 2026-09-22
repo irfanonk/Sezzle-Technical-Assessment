@@ -122,8 +122,14 @@ Each currently requires exactly two operands.
 
 ## Error codes
 
-- `malformed_json`: invalid JSON, unknown fields, multiple JSON values, or a
-  JSON number that cannot be represented as a finite `float64`
+- `empty_body`: the request body is empty
+- `malformed_json`: invalid JSON or multiple JSON values
+- `unknown_field`: the request contains a field outside the API contract
+- `invalid_field_type`: a request field has the wrong JSON type
+- `missing_operation`: the operation is missing, null, empty, or whitespace
+- `missing_operands`: operands are missing or null
+- `invalid_operand_type`: an operand is not a finite JSON number; the message
+  identifies its zero-based array index
 - `unsupported_media_type`: the calculation request is not
   `application/json`
 - `request_too_large`: the request body exceeds 64 KiB
@@ -141,9 +147,10 @@ media types return `415`, and unsupported methods return `405`.
 ## Design
 
 Calculation rules live in `internal/calculator` and have no dependency on HTTP.
-The HTTP package handles strict decoding, validation-to-status mapping, and the
-shared response envelope. Inputs are grouped in a `Calculation` struct rather
-than passed as positional function parameters.
+The HTTP package keeps JSON decoding separate from request contract validation
+in `validators.go`, then maps failures to the shared response envelope. Inputs
+are grouped in a `Calculation` struct rather than passed as positional function
+parameters.
 
 The service uses `float64`, which is suitable for a general calculator but has
 normal IEEE-754 precision behavior. It rejects NaN, infinity, and results that
