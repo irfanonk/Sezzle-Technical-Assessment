@@ -91,6 +91,38 @@ To preview the production build locally:
 pnpm preview
 ```
 
+## Docker
+
+Build the production image:
+
+```sh
+docker build -t my-frontend .
+```
+
+### Run the frontend container
+
+With the backend running locally on port `8080`, run the frontend by itself:
+
+```sh
+docker run --rm \
+  -p 3000:80 \
+  -e BACKEND_URL=http://host.docker.internal:8080 \
+  my-frontend
+```
+
+Open `http://localhost:3000`. Nginx serves the built application and proxies
+`/api` to `BACKEND_URL`, keeping browser requests on one origin.
+
+When frontend and backend containers share a Docker network and the backend
+service is named `backend`, the image's default
+`BACKEND_URL=http://backend:8080` works without an override.
+
+On Linux, reaching a backend running directly on the host may also require:
+
+```sh
+--add-host=host.docker.internal:host-gateway
+```
+
 ## Structure
 
 - `src/api/` — `fetch` wrapper, response envelope unwrapping, and error
